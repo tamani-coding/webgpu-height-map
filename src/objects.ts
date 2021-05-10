@@ -114,7 +114,6 @@ function vertxShader(): string {
             fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
                 var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(input.position, 1.0);
-                transformedPosition.z = sin(transformedPosition.x) * cos(transformedPosition.y);
 
                 output.Position = cameraTransform.matrix * transformedPosition;             // transformed with model & camera projection
                 output.fragNorm = (modelTransform.rotate * vec4<f32>(input.norm, 1.0)).xyz; // transformed normal vector with model
