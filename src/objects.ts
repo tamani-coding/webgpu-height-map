@@ -13,53 +13,56 @@ export class Mesh {
     vertices: Vertex[] = [];
 }
 
-export function generatePlane(xSize: number, ySize: number): Mesh {
+export function generatePlane(xSize: number, ySize: number, width: number, height: number): Mesh {
     const result = new Mesh();
 
     const normal = [0, 0, 1]
 
-    for (let x = xSize - 1; x >= 0; x--) {
-        for (let y = ySize - 1; y >= 0; y--) {
+    const xstep = width / xSize;
+    const ystep = height / ySize;
+
+    for (let x = 0; x < width; x += xstep) {
+        for (let y = 0; y < height; y += ystep) {
 
             const x0 = x;
             const y0 = y;
-            const x1 = x0 + 1;
-            const y1 = y0 + 1;
+            const x1 = x0 + xstep;
+            const y1 = y0 + ystep;
             
             result.vertices.push({
                 pos: [x0, y0, 0],
                 norm: normal,
-                uv: [1 - x0 / xSize, 1 - y0 / ySize],
+                uv: [1 - x0 / width, 1 - y0 / height],
             });
 
             result.vertices.push({
                 pos: [x1, y0, 0],
                 norm: normal,
-                uv: [ 1 - x1 / xSize, 1 - y0 / ySize],
+                uv: [ 1 - x1 / width, 1 - y0 / height],
             });
 
             result.vertices.push({
                 pos: [x0, y1, 0],
                 norm: normal,
-                uv: [1 - x0 / xSize, 1 - y1 / ySize],
+                uv: [1 - x0 / width, 1 - y1 / height],
             });
 
             result.vertices.push({
                 pos: [x0, y1, 0],
                 norm: normal,
-                uv: [1 - x0 / xSize, 1 - y1 / ySize],
+                uv: [1 - x0 / width, 1 - y1 / height],
             });
 
             result.vertices.push({
                 pos: [x1, y0, 0],
                 norm: normal,
-                uv: [ 1 - x1 / xSize, 1 - y0 / ySize],
+                uv: [ 1 - x1 / width, 1 - y0 / height],
             });
 
             result.vertices.push({
                 pos: [x1, y1, 0],
                 norm: normal,
-                uv: [ 1 - x1 / xSize, 1 - y1 / ySize],
+                uv: [ 1 - x1 / width, 1 - y1 / height],
             });
         }
     }
@@ -67,7 +70,7 @@ export function generatePlane(xSize: number, ySize: number): Mesh {
     return result;
 }
 
-const mesh : Mesh = generatePlane(7,7);
+const mesh : Mesh = generatePlane(512,512, 6, 6);
 
 /** 
  * 
@@ -111,7 +114,7 @@ function vertxShader(): string {
             fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
                 var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(input.position, 1.0);
-
+                transformedPosition.z = sin(transformedPosition.x) * cos(transformedPosition.y);
 
                 output.Position = cameraTransform.matrix * transformedPosition;             // transformed with model & camera projection
                 output.fragNorm = (modelTransform.rotate * vec4<f32>(input.norm, 1.0)).xyz; // transformed normal vector with model
