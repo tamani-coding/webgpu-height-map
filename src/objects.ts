@@ -21,8 +21,11 @@ export function generatePlane(xSize: number, ySize: number, width: number, heigh
     const xstep = width / xSize;
     const ystep = height / ySize;
 
-    for (let x = 0; x < width; x += xstep) {
-        for (let y = 0; y < height; y += ystep) {
+    const widthHalf = width / 2;
+    const heightHalf = width / 2;
+
+    for (let x = - widthHalf; x < widthHalf; x += xstep) {
+        for (let y = - heightHalf; y < heightHalf; y += ystep) {
 
             const x0 = x;
             const y0 = y;
@@ -32,45 +35,43 @@ export function generatePlane(xSize: number, ySize: number, width: number, heigh
             result.vertices.push({
                 pos: [x0, y0, 0],
                 norm: normal,
-                uv: [1 - x0 / width, 1 - y0 / height],
+                uv: [1 - ( x0 + widthHalf) / width, 1 - (y0 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x1, y0, 0],
                 norm: normal,
-                uv: [ 1 - x1 / width, 1 - y0 / height],
+                uv: [ 1 - (x1 + widthHalf)/ width, 1 - (y0 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x0, y1, 0],
                 norm: normal,
-                uv: [1 - x0 / width, 1 - y1 / height],
+                uv: [1 - (x0 + widthHalf)/ width, 1 - (y1 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x0, y1, 0],
                 norm: normal,
-                uv: [1 - x0 / width, 1 - y1 / height],
+                uv: [1 - (x0 + widthHalf)/ width, 1 - (y1 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x1, y0, 0],
                 norm: normal,
-                uv: [ 1 - x1 / width, 1 - y0 / height],
+                uv: [ 1 - (x1 + widthHalf)/ width, 1 - (y0 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x1, y1, 0],
                 norm: normal,
-                uv: [ 1 - x1 / width, 1 - y1 / height],
+                uv: [ 1 - (x1 + widthHalf)/ width, 1 - (y1 + heightHalf)/ height],
             });
         }
     }
 
     return result;
 }
-
-const mesh : Mesh = generatePlane(512,512, 6, 6);
 
 /** 
  * 
@@ -93,6 +94,7 @@ function vertxShader(): string {
             // bind model/camera buffers
             [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
             [[group(0), binding(1)]] var<uniform> cameraTransform   : Camera;
+            [[group(0), binding(5)]] var myTexture: [[access(read)]] texture_storage_2d<rgba8unorm>;
             
             // output struct of this vertex shader
             struct VertexOutput {
@@ -113,7 +115,12 @@ function vertxShader(): string {
             [[stage(vertex)]]
             fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
-                var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(input.position, 1.0);
+
+                var inputPos: vec3<f32> = input.position;
+                var height: vec4<f32> = textureLoad(myTexture, vec2<i32>( i32(input.uv.x * 512.0), i32(input.uv.y * 512.0)));
+                inputPos = inputPos + input.norm * ((height.x + height.y + height.z) / 3.0) * 10.0;
+
+                var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(inputPos, 1.0);
 
                 output.Position = cameraTransform.matrix * transformedPosition;             // transformed with model & camera projection
                 output.fragNorm = (modelTransform.rotate * vec4<f32>(input.norm, 1.0)).xyz; // transformed normal vector with model
@@ -178,9 +185,11 @@ export interface Parameter3D {
     rotY?: number;
     rotZ?: number;
 
-    scaleX?: number;
-    scaleY?: number;
-    scaleZ?: number;
+    width?: number;
+    height?: number;
+
+    numSegX?:number;
+    numSegY?:number;
 }
 
 
@@ -194,9 +203,11 @@ export class Plane {
     public rotY: number = 0;
     public rotZ: number = 0;
 
-    public scaleX: number = 1;
-    public scaleY: number = 1;
-    public scaleZ: number = 1;
+    public width: number = 1;
+    public height: number = 1;
+
+    public numSegX: number = 1;
+    public numSegY: number = 1;
 
     private matrixSize = 4 * 16; // 4x4 matrix
     private offset = 256; // transformationBindGroup offset must be 256-byte aligned
@@ -213,8 +224,12 @@ export class Plane {
     private perVertex = ( 3 + 3 + 2 );      // 3 for position, 3 for normal, 2 for uv
     private stride = this.perVertex * 4;    // stride = byte length of vertex data array 
 
-    constructor(parameter: Parameter3D, imageBitmap: ImageBitmap) {
+    private mesh : Mesh;
+
+    constructor(parameter: Parameter3D, imageBitmap: ImageBitmap, heightBitmap: ImageBitmap) {
         this.setTransformation(parameter);
+        this.mesh = generatePlane(this.numSegX, this.numSegY, this.width, this.height);
+
         this.renderPipeline = device.createRenderPipeline({
             vertex: {
                 module: device.createShaderModule({ code: vertxShader(),}),
@@ -268,19 +283,19 @@ export class Plane {
         });
 
         this.verticesBuffer = device.createBuffer({
-            size: mesh.vertices.length * this.stride,
+            size: this.mesh.vertices.length * this.stride,
             usage: GPUBufferUsage.VERTEX,
             mappedAtCreation: true,
         });
 
         const mapping = new Float32Array(this.verticesBuffer.getMappedRange());
-        for (let i = 0; i < mesh.vertices.length; i++) {
+        for (let i = 0; i < this.mesh.vertices.length; i++) {
             // (3 * 4) + (3 * 4) + (2 * 4)
-            mapping.set([mesh.vertices[i].pos[0] * this.scaleX, 
-                mesh.vertices[i].pos[1] * this.scaleY, 
-                mesh.vertices[i].pos[2] * this.scaleZ], this.perVertex * i + 0);
-            mapping.set(mesh.vertices[i].norm, this.perVertex * i + 3);
-            mapping.set(mesh.vertices[i].uv, this.perVertex * i + 6);
+            mapping.set([this.mesh.vertices[i].pos[0], 
+                this.mesh.vertices[i].pos[1], 
+                this.mesh.vertices[i].pos[2]], this.perVertex * i + 0);
+            mapping.set(this.mesh.vertices[i].norm, this.perVertex * i + 3);
+            mapping.set(this.mesh.vertices[i].uv, this.perVertex * i + 6);
         }
         this.verticesBuffer.unmap();
 
@@ -332,6 +347,17 @@ export class Plane {
             magFilter: 'linear',
             minFilter: 'linear',
         });
+        
+        let height = device.createTexture({
+            size: [heightBitmap.width, heightBitmap.height, 1],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.STORAGE | GPUTextureUsage.COPY_DST,
+        });
+        device.queue.copyImageBitmapToTexture(
+            { imageBitmap: heightBitmap },
+            { texture: height },
+            [heightBitmap.width, heightBitmap.height, 1]
+        );
 
         entries.push({
             binding: 3,
@@ -340,6 +366,10 @@ export class Plane {
         entries.push({
             binding: 4,
             resource: texture.createView(),
+        } as any);
+        entries.push({
+            binding: 5,
+            resource: height.createView(),
         } as any);
 
         this.transformationBindGroup = device.createBindGroup({
@@ -368,7 +398,7 @@ export class Plane {
         );
         passEncoder.setVertexBuffer(0, this.verticesBuffer);
         passEncoder.setBindGroup(0, this.transformationBindGroup);
-        passEncoder.draw(mesh.vertices.length, 1, 0, 0);
+        passEncoder.draw(this.mesh.vertices.length, 1, 0, 0);
     }
 
     private updateTransformationMatrix() {
@@ -403,8 +433,10 @@ export class Plane {
         this.rotY = parameter.rotY ? parameter.rotY : 0;
         this.rotZ = parameter.rotZ ? parameter.rotZ : 0;
 
-        this.scaleX = parameter.scaleX ? parameter.scaleX : 1;
-        this.scaleY = parameter.scaleY ? parameter.scaleY : 1;
-        this.scaleZ = parameter.scaleZ ? parameter.scaleZ : 1;
+        this.width = parameter.width ? parameter.width : 1;
+        this.height = parameter.height ? parameter.height : 1;
+    
+        this.numSegX = parameter.numSegX ? parameter.numSegX : 1;
+        this.numSegY = parameter.numSegY ? parameter.numSegY : 1;
     }
 }

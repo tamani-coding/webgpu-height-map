@@ -10,54 +10,38 @@ document.body.appendChild(outputCanvas)
 
 const camera = new Camera(outputCanvas.width / outputCanvas.height);
 camera.z = 10
-camera.y = 10
+camera.y = 5
 const scene = new Scene();
 
 const renderer = new WebGpuRenderer();
-renderer.init(outputCanvas).then((success) => {
+renderer.init(outputCanvas).then(async (success) => {
     if (!success) return;
 
-    // textured planes
-    const texturedPlane: Plane[] = [];
+    const width = 80;
+    const height = 80;
+    const posy = 5;
 
-    const texture1 = document.createElement('img');
-    texture1.src = './crocodile_gena.png';
-    texture1.decode().then( () => {
-        createImageBitmap(texture1).then( (imageBitmap: ImageBitmap) => {
-            const plane = new Plane({ x: -8 }, imageBitmap);
-            texturedPlane.push(plane);
-            scene.add(plane);
-        });
-    });
+    const heigtmap = document.createElement('img');
+    heigtmap.src = './heightmap.png';
+    await heigtmap.decode();
+    const heightBitmap = await createImageBitmap(heigtmap)
+    
+    const texture = document.createElement('img');
+    texture.src = './deno.png';
+    await texture.decode();
+    const textureBitmap = await createImageBitmap(texture);
 
-    const texture2 = document.createElement('img');
-    texture2.src = './terranigma.png';
-    texture2.decode().then( () => {
-        createImageBitmap(texture2).then( (imageBitmap: ImageBitmap) => {
-            const plane = new Plane({  }, imageBitmap);
-            texturedPlane.push(plane);
-            scene.add(plane);
-        });
-    });
-
-    const texture3 = document.createElement('img');
-    texture3.src = './deno.png';
-    texture3.decode().then( () => {
-        createImageBitmap(texture3).then( (imageBitmap: ImageBitmap) => {
-            const plane = new Plane({ x: 8 }, imageBitmap);
-            texturedPlane.push(plane);
-            scene.add(plane);
-        });
-    });
-
+    const plane1 = new Plane({ y: -posy, width: width, height: height, rotX: -Math.PI / 2,
+        numSegX: 512, numSegY: 512 }, textureBitmap, heightBitmap);
+    scene.add(plane1);
 
     const doFrame = () => {
         // ANIMATE
         const now = Date.now() / 1000;
 
         scene.pointLightPosition[0] = Math.cos(now) * 10;
-        scene.pointLightPosition[1] = 2;
-        scene.pointLightPosition[2] = 2;
+        scene.pointLightPosition[1] = 10;
+        scene.pointLightPosition[2] = 0;
 
         // RENDER
         renderer.frame(camera, scene);
