@@ -1,10 +1,8 @@
 import { Scene } from './scene';
 import { Camera } from './camera';
-import { lightDataSize } from './scene';
 
 export var device: GPUDevice;
 export var cameraUniformBuffer: GPUBuffer;
-export var lightDataBuffer: GPUBuffer;
 
 async function getDevice() {
     if (!navigator.gpu) {
@@ -55,7 +53,7 @@ export class WebGpuRenderer {
                 {
                     // attachment is acquired and set in render loop.
                     view: undefined,
-                    loadValue: { r: 0.25, g: 0.25, b: 0.25, a: 1.0 },
+                    loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                 } as GPURenderPassColorAttachmentNew,
             ],
             depthStencilAttachment: {
@@ -70,11 +68,6 @@ export class WebGpuRenderer {
 
         cameraUniformBuffer = device.createBuffer({
             size: this.matrixSize,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
-
-        lightDataBuffer = device.createBuffer({
-            size: lightDataSize,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
 
@@ -102,16 +95,6 @@ export class WebGpuRenderer {
             cameraViewProjectionMatrix.buffer,
             cameraViewProjectionMatrix.byteOffset,
             cameraViewProjectionMatrix.byteLength
-        );
-
-        // LIGHT BUFFER
-        const lightPosition = scene.getPointLightPosition();
-        device.queue.writeBuffer(
-            lightDataBuffer,
-          0,
-          lightPosition.buffer,
-          lightPosition.byteOffset,
-          lightPosition.byteLength
         );
 
         (this.renderPassDescriptor.colorAttachments as [GPURenderPassColorAttachmentNew])[0].view = this.swapChain

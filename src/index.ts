@@ -39,10 +39,6 @@ renderer.init(outputCanvas).then(async (success) => {
         // ANIMATE
         const now = Date.now() / 1000;
 
-        scene.pointLightPosition[0] = Math.cos(now) * 10;
-        scene.pointLightPosition[1] = 10;
-        scene.pointLightPosition[2] = 0;
-
         // RENDER
         renderer.frame(camera, scene);
         requestAnimationFrame(doFrame);

@@ -1,6 +1,5 @@
-import { device, cameraUniformBuffer, lightDataBuffer } from './renderer';
+import { device, cameraUniformBuffer } from './renderer';
 import { mat4, vec3 } from 'gl-matrix';
-import { lightDataSize } from './scene';
 
 
 export class Vertex  {
@@ -94,7 +93,7 @@ function vertxShader(): string {
             // bind model/camera buffers
             [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
             [[group(0), binding(1)]] var<uniform> cameraTransform   : Camera;
-            [[group(0), binding(5)]] var myTexture: [[access(read)]] texture_storage_2d<rgba8unorm>;
+            [[group(0), binding(4)]] var myTexture: [[access(read)]] texture_storage_2d<rgba8unorm>;
             
             // output struct of this vertex shader
             struct VertexOutput {
@@ -140,27 +139,20 @@ function vertxShader(): string {
  */
 function fragmentShader(): string {
     return  `
-            [[block]] struct LightData {        // light xyz position
-                lightPos : vec3<f32>;
-            };
-
             struct FragmentInput {              // output from vertex stage shader
                 [[location(0)]] fragNorm : vec3<f32>;
                 [[location(1)]] uv : vec2<f32>;
                 [[location(2)]] fragPos : vec3<f32>;
             };
 
-            // bind light data buffer
-            [[group(0), binding(2)]] var<uniform> lightData : LightData;
-
             // constants for light
-            let ambientLightFactor : f32 = 0.25;     // ambient light
-            [[group(0), binding(3)]] var mySampler: sampler;
-            [[group(0), binding(4)]] var myTexture: texture_2d<f32>;
+            let ambientLightFactor : f32 = 0.50;     // ambient light
+            [[group(0), binding(2)]] var mySampler: sampler;
+            [[group(0), binding(3)]] var myTexture: texture_2d<f32>;
 
             [[stage(fragment)]]
             fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-                let lightDirection: vec3<f32> = normalize(lightData.lightPos - input.fragPos);
+                let lightDirection: vec3<f32> = normalize(vec3<f32>(30.0,30.0,0.0) - input.fragPos);
 
                 // lambert factor
                 let lambertFactor : f32 = dot(lightDirection, input.fragNorm);
@@ -321,14 +313,6 @@ export class Plane {
                     size: this.matrixSize,
                 },
             },
-            {
-                binding: 2,
-                resource: {
-                    buffer: lightDataBuffer,
-                    offset: 0,
-                    size: lightDataSize,
-                },
-            },
             
         ];
 
@@ -360,15 +344,15 @@ export class Plane {
         );
 
         entries.push({
-            binding: 3,
+            binding: 2,
             resource: sampler,
         } as any)
         entries.push({
-            binding: 4,
+            binding: 3,
             resource: texture.createView(),
         } as any);
         entries.push({
-            binding: 5,
+            binding: 4,
             resource: height.createView(),
         } as any);
 
