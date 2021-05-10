@@ -9,8 +9,8 @@ outputCanvas.height = window.innerHeight
 document.body.appendChild(outputCanvas)
 
 const camera = new Camera(outputCanvas.width / outputCanvas.height);
-camera.z = 10
-camera.y = 5
+camera.z = 30
+camera.y = 15
 const scene = new Scene();
 
 const renderer = new WebGpuRenderer();
@@ -27,7 +27,7 @@ renderer.init(outputCanvas).then(async (success) => {
     const heightBitmap = await createImageBitmap(heigtmap)
     
     const texture = document.createElement('img');
-    texture.src = './deno.png';
+    texture.src = './deno2.png';
     await texture.decode();
     const textureBitmap = await createImageBitmap(texture);
 

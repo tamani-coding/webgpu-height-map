@@ -13,13 +13,13 @@ export class Mesh {
     vertices: Vertex[] = [];
 }
 
-export function generatePlane(xSize: number, ySize: number, width: number, height: number): Mesh {
+export function generatePlane(numSegX: number, numSegY: number, width: number, height: number): Mesh {
     const result = new Mesh();
 
     const normal = [0, 0, 1]
 
-    const xstep = width / xSize;
-    const ystep = height / ySize;
+    const xstep = width / numSegX;
+    const ystep = height / numSegY;
 
     const widthHalf = width / 2;
     const heightHalf = width / 2;
