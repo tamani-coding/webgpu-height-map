@@ -146,23 +146,12 @@ function fragmentShader(): string {
             };
 
             // constants for light
-            let ambientLightFactor : f32 = 0.50;     // ambient light
             [[group(0), binding(2)]] var mySampler: sampler;
             [[group(0), binding(3)]] var myTexture: texture_2d<f32>;
 
             [[stage(fragment)]]
             fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-                let lightDirection: vec3<f32> = normalize(vec3<f32>(30.0,30.0,0.0) - input.fragPos);
-
-                // lambert factor
-                let lambertFactor : f32 = dot(lightDirection, input.fragNorm);
-
-                var lightFactor: f32 = 0.0;
-                lightFactor = lambertFactor;
-
-                let lightingFactor: f32 = max(min(lightFactor, 1.0), ambientLightFactor);
-
-                return vec4<f32>(textureSample(myTexture, mySampler, input.uv).xyz * lightingFactor, 1.0);
+                return vec4<f32>(textureSample(myTexture, mySampler, input.uv).xyz, 1.0);
             }
         `;
 }
