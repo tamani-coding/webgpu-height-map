@@ -22,7 +22,7 @@ renderer.init(outputCanvas).then(async (success) => {
     const posy = 5;
 
     const heigtmap = document.createElement('img');
-    heigtmap.src = './heightmap.png';
+    heigtmap.src = './heightmap_01.png';
     await heigtmap.decode();
     const heightBitmap = await createImageBitmap(heigtmap)
     
