@@ -102,6 +102,7 @@ function vertxShader(): string {
                 [[location(0)]] fragNorm : vec3<f32>;
                 [[location(1)]] uv : vec2<f32>;
                 [[location(2)]] fragPos : vec3<f32>;
+                [[location(3)]] height : f32;
             };
 
             // input struct according to vertex buffer stride
@@ -117,7 +118,8 @@ function vertxShader(): string {
 
                 var inputPos: vec3<f32> = input.position;
                 var height: vec4<f32> = textureLoad(myTexture, vec2<i32>( i32(input.uv.x * 512.0), i32(input.uv.y * 512.0)));
-                inputPos = inputPos + input.norm * ((height.x + height.y + height.z) / 3.0) * 10.0;
+                var h: f32 = (height.x + height.y + height.z) / 3.0;
+                inputPos = inputPos + input.norm * h * 10.0;
 
                 var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(inputPos, 1.0);
 
@@ -125,6 +127,7 @@ function vertxShader(): string {
                 output.fragNorm = (modelTransform.rotate * vec4<f32>(input.norm, 1.0)).xyz; // transformed normal vector with model
                 output.uv = input.uv;                                                       // uv
                 output.fragPos = transformedPosition.xyz;                                   // transformed fragment position with model
+                output.height = h;
 
                 return output;
             }
@@ -143,6 +146,7 @@ function fragmentShader(): string {
                 [[location(0)]] fragNorm : vec3<f32>;
                 [[location(1)]] uv : vec2<f32>;
                 [[location(2)]] fragPos : vec3<f32>;
+                [[location(3)]] height : f32;
             };
 
             // constants for light
@@ -151,7 +155,12 @@ function fragmentShader(): string {
 
             [[stage(fragment)]]
             fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-                return vec4<f32>(textureSample(myTexture, mySampler, input.uv).xyz, 1.0);
+                var lightDir: vec3<f32> = vec3<f32>(0.0, 15.0, 0.0) - input.fragPos;
+                var lambert: f32 = dot(normalize(lightDir), input.fragNorm);
+                var lightFactor: f32 = max( min(lambert, 1.0), 0.45);
+                // textureSample(myTexture, mySampler, input.uv).xyz
+                // vec3<f32>(1.0 * input.height , 0.2 * input.height, 0.2)
+                return vec4<f32>( textureSample(myTexture, mySampler, input.uv).xyz, 1.0);
             }
         `;
 }
