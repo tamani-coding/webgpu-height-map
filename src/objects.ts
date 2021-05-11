@@ -93,16 +93,13 @@ function vertxShader(): string {
             // bind model/camera buffers
             [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
             [[group(0), binding(1)]] var<uniform> cameraTransform   : Camera;
-            [[group(0), binding(4)]] var myTexture: [[access(read)]] texture_storage_2d<rgba8unorm>;
-            
+            [[group(0), binding(2)]] var heightTexture: [[access(read)]] texture_storage_2d<rgba8unorm>;
+
             // output struct of this vertex shader
             struct VertexOutput {
                 [[builtin(position)]] Position : vec4<f32>;
 
-                [[location(0)]] fragNorm : vec3<f32>;
-                [[location(1)]] uv : vec2<f32>;
-                [[location(2)]] fragPos : vec3<f32>;
-                [[location(3)]] height : f32;
+                [[location(0)]] heightFactor: f32;
             };
 
             // input struct according to vertex buffer stride
@@ -115,52 +112,31 @@ function vertxShader(): string {
             [[stage(vertex)]]
             fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
-
                 var inputPos: vec3<f32> = input.position;
-                var height: vec4<f32> = textureLoad(myTexture, vec2<i32>( i32(input.uv.x * 512.0), i32(input.uv.y * 512.0)));
-                var h: f32 = (height.x + height.y + height.z) / 3.0;
-                inputPos = inputPos + input.norm * h * 10.0;
+                var d : vec2<i32> = textureDimensions(heightTexture);
+                var heightPixel: vec4<f32> = textureLoad(heightTexture, vec2<i32>( i32(input.uv.x * f32(d.x)), i32(input.uv.y * f32(d.y)) ));
+                var height: f32 = (heightPixel.x + heightPixel.y + heightPixel.z) / 3.0;
+                inputPos = inputPos + input.norm * height * 10.0;
 
                 var transformedPosition: vec4<f32> = modelTransform.transform * vec4<f32>(inputPos, 1.0);
 
                 output.Position = cameraTransform.matrix * transformedPosition;             // transformed with model & camera projection
-                output.fragNorm = (modelTransform.rotate * vec4<f32>(input.norm, 1.0)).xyz; // transformed normal vector with model
-                output.uv = input.uv;                                                       // uv
-                output.fragPos = transformedPosition.xyz;                                   // transformed fragment position with model
-                output.height = h;
-
+                output.heightFactor = height;
                 return output;
             }
         `;
 }
 
-/**
- * This shader receives the output of the vertex shader program.
- * If texture is set, the sampler and texture is binded to this shader.
- * Determines the color of the current fragment, takes into account point light.
- * 
- */
+
 function fragmentShader(): string {
     return  `
-            struct FragmentInput {              // output from vertex stage shader
-                [[location(0)]] fragNorm : vec3<f32>;
-                [[location(1)]] uv : vec2<f32>;
-                [[location(2)]] fragPos : vec3<f32>;
-                [[location(3)]] height : f32;
+            struct FragmentInput {
+                [[location(0)]] heightFactor: f32;
             };
 
-            // constants for light
-            [[group(0), binding(2)]] var mySampler: sampler;
-            [[group(0), binding(3)]] var myTexture: texture_2d<f32>;
-
             [[stage(fragment)]]
-            fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-                var lightDir: vec3<f32> = vec3<f32>(0.0, 15.0, 0.0) - input.fragPos;
-                var lambert: f32 = dot(normalize(lightDir), input.fragNorm);
-                var lightFactor: f32 = max( min(lambert, 1.0), 0.45);
-                // textureSample(myTexture, mySampler, input.uv).xyz
-                // vec3<f32>(1.0 * input.height , 0.2 * input.height, 0.2)
-                return vec4<f32>( textureSample(myTexture, mySampler, input.uv).xyz, 1.0);
+            fn main(input: FragmentInput) -> [[location(0)]] vec4<f32> {
+                return vec4<f32>( vec3<f32>(1.0 * input.heightFactor, 0.2, 0.2).xyz, 1.0);
             }
         `;
 }
@@ -315,21 +291,6 @@ export class Plane {
         ];
 
         // Texture
-        let texture = device.createTexture({
-            size: [imageBitmap.width, imageBitmap.height, 1],
-            format: 'rgba8unorm',
-            usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST,
-        });
-        device.queue.copyImageBitmapToTexture(
-            { imageBitmap },
-            { texture: texture },
-            [imageBitmap.width, imageBitmap.height, 1]
-        );
-        const sampler = device.createSampler({
-            magFilter: 'linear',
-            minFilter: 'linear',
-        });
-        
         let height = device.createTexture({
             size: [heightBitmap.width, heightBitmap.height, 1],
             format: 'rgba8unorm',
@@ -343,14 +304,6 @@ export class Plane {
 
         entries.push({
             binding: 2,
-            resource: sampler,
-        } as any)
-        entries.push({
-            binding: 3,
-            resource: texture.createView(),
-        } as any);
-        entries.push({
-            binding: 4,
             resource: height.createView(),
         } as any);
 
