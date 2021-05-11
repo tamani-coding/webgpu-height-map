@@ -25,14 +25,9 @@ renderer.init(outputCanvas).then(async (success) => {
     heigtmap.src = './heightmap_01.png';
     await heigtmap.decode();
     const heightBitmap = await createImageBitmap(heigtmap)
-    
-    const texture = document.createElement('img');
-    texture.src = './deno2.png';
-    await texture.decode();
-    const textureBitmap = await createImageBitmap(texture);
 
     const plane1 = new Plane({ y: -posy, width: width, height: height, rotX: -Math.PI / 2,
-        numSegX: 512, numSegY: 512 }, textureBitmap, heightBitmap);
+        numSegX: 512, numSegY: 512 }, heightBitmap);
     scene.add(plane1);
 
     const doFrame = () => {

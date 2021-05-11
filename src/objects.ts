@@ -34,37 +34,37 @@ export function generatePlane(numSegX: number, numSegY: number, width: number, h
             result.vertices.push({
                 pos: [x0, y0, 0],
                 norm: normal,
-                uv: [1 - ( x0 + widthHalf) / width, 1 - (y0 + heightHalf)/ height],
+                uv: [1 - ( x0 + widthHalf) / width, (y0 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x1, y0, 0],
                 norm: normal,
-                uv: [ 1 - (x1 + widthHalf)/ width, 1 - (y0 + heightHalf)/ height],
+                uv: [ 1 - (x1 + widthHalf)/ width, (y0 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x0, y1, 0],
                 norm: normal,
-                uv: [1 - (x0 + widthHalf)/ width, 1 - (y1 + heightHalf)/ height],
+                uv: [1 - (x0 + widthHalf)/ width, (y1 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x0, y1, 0],
                 norm: normal,
-                uv: [1 - (x0 + widthHalf)/ width, 1 - (y1 + heightHalf)/ height],
+                uv: [1 - (x0 + widthHalf)/ width, (y1 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x1, y0, 0],
                 norm: normal,
-                uv: [ 1 - (x1 + widthHalf)/ width, 1 - (y0 + heightHalf)/ height],
+                uv: [ 1 - (x1 + widthHalf)/ width, (y0 + heightHalf)/ height],
             });
 
             result.vertices.push({
                 pos: [x1, y1, 0],
                 norm: normal,
-                uv: [ 1 - (x1 + widthHalf)/ width, 1 - (y1 + heightHalf)/ height],
+                uv: [ 1 - (x1 + widthHalf)/ width, (y1 + heightHalf)/ height],
             });
         }
     }
@@ -192,7 +192,7 @@ export class Plane {
 
     private mesh : Mesh;
 
-    constructor(parameter: Parameter3D, imageBitmap: ImageBitmap, heightBitmap: ImageBitmap) {
+    constructor(parameter: Parameter3D, heightBitmap: ImageBitmap) {
         this.setTransformation(parameter);
         this.mesh = generatePlane(this.numSegX, this.numSegY, this.width, this.height);
 
