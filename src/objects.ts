@@ -93,7 +93,7 @@ function vertxShader(): string {
             // bind model/camera buffers
             [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
             [[group(0), binding(1)]] var<uniform> cameraTransform   : Camera;
-            [[group(0), binding(2)]] var heightTexture: [[access(read)]] texture_storage_2d<rgba8unorm>;
+            [[group(0), binding(2)]] var heightTexture: texture_storage_2d<rgba8unorm,read>;
 
             // output struct of this vertex shader
             struct VertexOutput {
@@ -294,10 +294,12 @@ export class Plane {
         let height = device.createTexture({
             size: [heightBitmap.width, heightBitmap.height, 1],
             format: 'rgba8unorm',
-            usage: GPUTextureUsage.STORAGE | GPUTextureUsage.COPY_DST,
+            usage: GPUTextureUsage.STORAGE |
+            GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.RENDER_ATTACHMENT,
         });
-        device.queue.copyImageBitmapToTexture(
-            { imageBitmap: heightBitmap },
+        device.queue.copyExternalImageToTexture(
+            { source: heightBitmap },
             { texture: height },
             [heightBitmap.width, heightBitmap.height, 1]
         );
