@@ -81,19 +81,19 @@ export function generatePlane(numSegX: number, numSegY: number, width: number, h
  * */ 
 function vertxShader(): string {
     return `
-            [[block]] struct Uniforms {     // 4x4 transform matrices
+            struct Uniforms {     // 4x4 transform matrices
                 transform : mat4x4<f32>;    // translate AND rotate
                 rotate : mat4x4<f32>;       // rotate only
             };
 
-            [[block]] struct Camera {     // 4x4 transform matrix
+            struct Camera {     // 4x4 transform matrix
                 matrix : mat4x4<f32>;
             };
             
             // bind model/camera buffers
             [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
             [[group(0), binding(1)]] var<uniform> cameraTransform   : Camera;
-            [[group(0), binding(2)]] var heightTexture: texture_storage_2d<rgba8unorm,read>;
+            [[group(0), binding(2)]] var heightTexture: texture_2d<f32>;
 
             // output struct of this vertex shader
             struct VertexOutput {
@@ -114,7 +114,7 @@ function vertxShader(): string {
                 var output: VertexOutput;
                 var inputPos: vec3<f32> = input.position;
                 var d : vec2<i32> = textureDimensions(heightTexture);
-                var heightPixel: vec4<f32> = textureLoad(heightTexture, vec2<i32>( i32(input.uv.x * f32(d.x)), i32(input.uv.y * f32(d.y)) ));
+                var heightPixel: vec4<f32> = textureLoad(heightTexture, vec2<i32>( i32(input.uv.x * f32(d.x)), i32(input.uv.y * f32(d.y)) ), 0);
                 var height: f32 = (heightPixel.x + heightPixel.y + heightPixel.z) / 3.0;
                 inputPos = inputPos + input.norm * height * 10.0;
 
@@ -294,7 +294,7 @@ export class Plane {
         let height = device.createTexture({
             size: [heightBitmap.width, heightBitmap.height, 1],
             format: 'rgba8unorm',
-            usage: GPUTextureUsage.STORAGE |
+            usage: GPUTextureUsage.TEXTURE_BINDING |
             GPUTextureUsage.COPY_DST |
             GPUTextureUsage.RENDER_ATTACHMENT,
         });
