@@ -91,25 +91,25 @@ function vertxShader(): string {
             };
             
             // bind model/camera buffers
-            [[group(0), binding(0)]] var<uniform> modelTransform    : Uniforms;
-            [[group(0), binding(1)]] var<uniform> cameraTransform   : Camera;
-            [[group(0), binding(2)]] var heightTexture: texture_2d<f32>;
+            @group(0) @binding(0) var<uniform> modelTransform    : Uniforms;
+            @group(0) @binding(1) var<uniform> cameraTransform   : Camera;
+            @group(0) @binding(2) var heightTexture: texture_2d<f32>;
 
             // output struct of this vertex shader
             struct VertexOutput {
-                [[builtin(position)]] Position : vec4<f32>;
+                @builtin(position) Position : vec4<f32>;
 
-                [[location(0)]] heightFactor: f32;
+                @location(0) heightFactor: f32;
             };
 
             // input struct according to vertex buffer stride
             struct VertexInput {
-                [[location(0)]] position : vec3<f32>;
-                [[location(1)]] norm : vec3<f32>;
-                [[location(2)]] uv : vec2<f32>;
+                @location(0) position : vec3<f32>;
+                @location(1) norm : vec3<f32>;
+                @location(2) uv : vec2<f32>;
             };
             
-            [[stage(vertex)]]
+            @stage(vertex)
             fn main(input: VertexInput) -> VertexOutput {
                 var output: VertexOutput;
                 var inputPos: vec3<f32> = input.position;
@@ -131,11 +131,11 @@ function vertxShader(): string {
 function fragmentShader(): string {
     return  `
             struct FragmentInput {
-                [[location(0)]] heightFactor: f32;
+                @location(0) heightFactor: f32;
             };
 
-            [[stage(fragment)]]
-            fn main(input: FragmentInput) -> [[location(0)]] vec4<f32> {
+            @stage(fragment)
+            fn main(input: FragmentInput) -> @location(0) vec4<f32> {
                 return vec4<f32>( vec3<f32>(1.0 * input.heightFactor, 0.2, 0.2).xyz, 1.0);
             }
         `;
